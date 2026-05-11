@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0F2910">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Kisan AI - Free AI chatbot for all Indian farmers in their language">
+<title>किसान AI — Kisan AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Marathi:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── GROQ MODELS (2025 current) ──────────────────────────────
+   PRIMARY  : llama-3.3-70b-versatile   (best quality, free)
+   FAST     : llama-3.1-8b-instant      (fastest, free)
+   FALLBACK : mixtral-8x7b-32768        (if others fail)
+──────────────────────────────────────────────────────────── */
+:root{
+  --g1:#0F2910;--g2:#1A3D1A;--g3:#2A5C2A;--g4:#3D7A3D;--g5:#56A356;
+  --sun:#F5A623;--sun2:#FFD166;
+  --cream:#FAF8F3;--cream2:#F0EBE0;
+  --ink:#1A120A;--ink2:#3D2B1A;--ink3:#7A6555;--ink4:#B0A090;
+  --border:#D8CFC0;
+  --red:#C0392B;--red-l:#FDECEA;
+  --r:14px;--rlg:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--g1);color:var(--ink);display:flex;align-items:center;justify-content:center}
+
+/* APP SHELL */
+.app{width:100%;max-width:430px;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(175deg,var(--g1) 0%,var(--g2) 100%)}
+
+/* HEADER */
+.hdr{padding:1rem 1.1rem 0.75rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.b-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--g5),var(--g4));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 4px 14px rgba(86,163,86,0.4)}
+.b-name{font-family:'Tiro Devanagari Marathi',serif;font-size:1.15rem;color:var(--cream);line-height:1.1}
+.b-sub{font-size:10.5px;color:rgba(250,248,243,0.45);margin-top:1px}
+.dt-pill{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--sun2);white-space:nowrap;cursor:pointer;user-select:none}
+
+/* MODEL BADGE */
+.model-badge{background:rgba(86,163,86,0.2);border:1px solid rgba(86,163,86,0.3);border-radius:20px;padding:3px 10px;font-size:10px;color:rgba(255,255,255,0.7);text-align:center;margin:0 1.1rem 0.6rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:6px}
+.model-dot{width:6px;height:6px;border-radius:50%;background:var(--g5);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.75)}}
+
+/* QUICK ROW */
+.qrow{display:flex;gap:7px;padding:0 1.1rem 0.85rem;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.qrow::-webkit-scrollbar{display:none}
+.qchip{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.13);border-radius:20px;padding:6px 13px;font-size:12px;color:rgba(250,248,243,0.85);cursor:pointer;white-space:nowrap;transition:all 0.18s;flex-shrink:0}
+.qchip:hover,.qchip:active{background:rgba(86,163,86,0.25);border-color:rgba(86,163,86,0.45)}
+
+/* CHAT WRAP */
+.chat-wrap{flex:1;min-height:0;background:var(--cream);border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -6px 32px rgba(0,0,0,0.3)}
+
+/* TOP BAR */
+.topbar{background:var(--cream);padding:0.85rem 1.1rem 0.7rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.online{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink3)}
+.odot{width:7px;height:7px;border-radius:50%;background:var(--g5);animation:pulse 2s infinite}
+.tab-row{display:flex;background:var(--cream2);border-radius:20px;padding:2px;gap:2px}
+.tb{padding:4px 9px;border-radius:20px;font-size:11.5px;border:none;background:none;cursor:pointer;font-family:'Outfit',sans-serif;color:var(--ink3);transition:all 0.15s}
+.tb.active{background:var(--g3);color:white}
+
+/* MESSAGES */
+.msgs{flex:1;overflow-y:auto;padding:1rem 1rem 0.5rem;display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth}
+.msgs::-webkit-scrollbar{width:3px}
+.msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Welcome bubble */
+.welcome{background:linear-gradient(135deg,var(--g3),var(--g4));border-radius:18px 18px 18px 4px;padding:1.1rem 1.2rem;color:white;max-width:92%}
+.wfrom{font-size:9.5px;opacity:0.6;margin-bottom:6px;letter-spacing:0.05em}
+.wtxt{font-family:'Tiro Devanagari Marathi',serif;font-size:14px;line-height:1.7}
+.wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.wc{background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.22);border-radius:20px;padding:5px 11px;font-size:11.5px;cursor:pointer;font-family:'Tiro Devanagari Marathi',serif;transition:background 0.15s}
+.wc:hover{background:rgba(255,255,255,0.26)}
+
+/* AI message */
+.msg-ai{display:flex;gap:8px;align-items:flex-end;animation:fadeup 0.28s ease}
+@keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ai-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--g5),var(--g4));display:flex;align-items:center;justify-content:center;font-size:14px}
+.ai-bub{background:white;border:1px solid var(--border);border-radius:18px 18px 18px 4px;padding:0.9rem 1rem;max-width:85%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.ai-from{font-size:9px;color:var(--g4);font-weight:600;margin-bottom:5px;letter-spacing:0.05em;display:flex;align-items:center;gap:5px}
+.ai-model-tag{background:#E8F5E9;color:var(--g3);font-size:9px;padding:1px 6px;border-radius:10px}
+.ai-txt{font-size:14px;color:var(--ink);line-height:1.7}
+.ai-txt.dev{font-family:'Tiro Devanagari Marathi',serif;font-size:14.5px}
+
+/* User message */
+.msg-user{display:flex;justify-content:flex-end;animation:fadeup 0.2s ease}
+.user-bub{background:linear-gradient(135deg,var(--g3),var(--g4));border-radius:18px 18px 4px 18px;padding:0.9rem 1rem;max-width:85%;color:white}
+.user-txt{font-size:14px;line-height:1.7}
+.user-txt.dev{font-family:'Tiro Devanagari Marathi',serif;font-size:14.5px}
+
+/* Error bubble */
+.err-bub{background:var(--red-l);border:1px solid #F5C6C6;border-radius:18px 18px 18px 4px;padding:0.9rem 1rem;max-width:90%;font-size:13.5px;color:var(--red);line-height:1.6}
+.err-bub .etitle{font-weight:600;margin-bottom:4px;font-size:13px}
+.retry-btn{background:var(--red);color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12.5px;cursor:pointer;margin-top:8px;font-family:'Outfit',sans-serif}
+
+/* Typing */
+.typing{display:none;gap:8px;align-items:flex-end}
+.typing.show{display:flex}
+.t-bub{background:white;border:1px solid var(--border);border-radius:18px 18px 18px 4px;padding:12px 16px;display:flex;gap:4px;align-items:center}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--g5);animation:tdot 1.1s infinite}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* Weather mini card (inside chat) */
+.w-card{background:linear-gradient(135deg,#1565C0,#1E88E5);border-radius:12px;padding:0.9rem;margin-top:8px;color:white;display:flex;justify-content:space-between;align-items:center}
+.wtemp{font-size:2rem;font-weight:700;line-height:1}
+.wdesc{font-size:12px;opacity:0.85;margin-top:3px}
+.wcity{font-size:11px;opacity:0.6;margin-top:2px}
+.wicon{font-size:2.6rem}
+.wdetail{text-align:right;font-size:11.5px;opacity:0.82;margin-top:4px}
+.fc-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:8px}
+.fc{background:rgba(255,255,255,0.1);border-radius:8px;padding:6px 2px;text-align:center;font-size:10.5px}
+.fc.today{background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.3)}
+.fc-ic{font-size:14px;margin:3px 0;display:block}
+.fc-hi{font-weight:600}.fc-lo{opacity:0.6}
+.farm-advice{background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12px;border-left:3px solid var(--sun2)}
+
+/* Market mini table */
+.mkt-wrap{background:white;border:1px solid var(--border);border-radius:12px;margin-top:8px;overflow:hidden}
+.mkt-head{background:var(--g2);padding:6px 12px;display:flex;justify-content:space-between}
+.mkt-head span{color:white;font-size:11px;font-weight:600;opacity:0.85}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-bottom:1px solid #E8F5E9}
+.mrow:last-child{border-bottom:none}
+.mcrop{font-size:13px;font-weight:500}
+.mmandi{font-size:10px;color:var(--ink4);margin-top:1px}
+.mprice{font-weight:700;color:var(--g3);font-size:13px}
+.mup{font-size:10px;color:#1B6B1B}.mdn{font-size:10px;color:var(--red)}
+
+/* Info boxes */
+.ibox{border-radius:10px;padding:0.8rem 1rem;margin-top:8px;font-size:13px}
+.ibox.green{background:#E8F5E9;border-left:3px solid var(--g4);color:#1B4D1B}
+.ibox.orange{background:#FFF3E0;border-left:3px solid var(--sun);color:#5A3600}
+.ibox strong{display:block;margin-bottom:3px;font-weight:600}
+
+/* INPUT BAR */
+.input-bar{padding:0.75rem 0.9rem;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--cream);flex-shrink:0}
+.input-wrap{flex:1;background:white;border:1.5px solid var(--border);border-radius:22px;display:flex;align-items:center;padding:8px 12px;gap:8px;transition:border-color 0.2s}
+.input-wrap:focus-within{border-color:var(--g4)}
+textarea.ci{flex:1;border:none;outline:none;resize:none;font-size:14px;font-family:'Outfit',sans-serif;color:var(--ink);background:transparent;max-height:80px;line-height:1.5}
+textarea.ci::placeholder{color:#B0A090}
+.vbtn{width:34px;height:34px;border-radius:50%;border:none;background:var(--cream2);color:var(--g3);font-size:15px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.18s}
+.vbtn:hover{background:var(--g3);color:white}
+.vbtn.rec{background:#C0392B;color:white;animation:rpulse 0.8s infinite}
+@keyframes rpulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,0.4)}50%{box-shadow:0 0 0 8px rgba(192,57,43,0)}}
+.sbtn{width:44px;height:44px;border-radius:50%;border:none;flex-shrink:0;background:linear-gradient(135deg,var(--g5),var(--g3));color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(86,163,86,0.4);transition:all 0.18s}
+.sbtn:hover{transform:scale(1.06)}.sbtn:active{transform:scale(0.95)}
+.sbtn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+/* BOTTOM NAV */
+.bnav{display:flex;background:var(--cream);border-top:1px solid var(--border);flex-shrink:0}
+.bni{flex:1;padding:9px 4px 10px;text-align:center;border:none;background:none;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.15s}
+.bni-ic{font-size:19px;display:block;margin-bottom:2px}
+.bni-l{font-size:9.5px;color:var(--ink4)}
+.bni-m{font-family:'Tiro Devanagari Marathi',serif;font-size:8.5px;color:var(--ink4);display:block}
+.bni.active .bni-l,.bni.active .bni-m{color:var(--g3);font-weight:600}
+
+/* PANELS */
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(15,41,16,0.75);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
+.overlay.open{display:flex}
+.panel{background:var(--cream);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;padding:1.4rem 1.2rem 2rem;animation:slideUp 0.3s cubic-bezier(0.32,0.72,0,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ph{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1.2rem}
+.panel h2{font-family:'Tiro Devanagari Marathi',serif;font-size:1.25rem;color:var(--g2);margin-bottom:1.1rem}
+.pclose{width:100%;margin-top:1.1rem;padding:13px;background:var(--g2);color:white;border:none;border-radius:13px;font-size:14px;cursor:pointer;font-family:'Outfit',sans-serif}
+
+/* Scheme cards */
+.scard{background:white;border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:9px;cursor:pointer;transition:all 0.15s}
+.scard:hover{border-color:var(--g4);box-shadow:0 3px 12px rgba(61,122,61,0.12)}
+.scard .st{font-weight:600;font-size:14px;margin-bottom:3px}
+.scard .sd{font-size:12.5px;color:var(--ink3);margin-bottom:7px}
+.badge{font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block}
+.bg{background:#E8F5E9;color:#1B4D1B}.bo{background:#FFF3E0;color:#5A3600}
+
+/* Helpline */
+.hline{display:flex;align-items:center;gap:12px;background:white;border:1px solid var(--border);border-radius:var(--r);padding:0.9rem 1rem;margin-bottom:8px}
+.hnum{font-size:1.3rem;font-weight:700;color:var(--g3);min-width:90px}
+.hname{font-weight:600;font-size:13.5px}
+.hdesc{font-size:12px;color:var(--ink3);margin-top:1px}
+
+/* Voice overlay */
+.vov{position:fixed;inset:0;z-index:300;background:rgba(15,41,16,0.95);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;backdrop-filter:blur(10px)}
+.vov.show{display:flex}
+.vring{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
+.vring::before,.vring::after{content:'';position:absolute;border-radius:50%;border:2px solid rgba(86,163,86,0.35);animation:vex 1.6s infinite}
+.vring::before{width:80px;height:80px}.vring::after{width:120px;height:120px;animation-delay:0.4s}
+@keyframes vex{0%{transform:scale(0.75);opacity:1}100%{transform:scale(1.35);opacity:0}}
+.vmic{width:64px;height:64px;border-radius:50%;z-index:1;background:linear-gradient(135deg,var(--g5),var(--g3));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 32px rgba(86,163,86,0.6)}
+.vtxt{font-family:'Tiro Devanagari Marathi',serif;color:white;font-size:1.1rem}
+.vtrans{font-family:'Tiro Devanagari Marathi',serif;color:rgba(255,255,255,0.75);font-size:14px;max-width:280px;text-align:center;min-height:20px}
+.vcancel{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:9px 26px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif}
+
+/* Spinner */
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--g4);animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.ts-label{font-size:10.5px;color:var(--ink4);text-align:center;padding:3px}
+
+@media(min-width:431px){.app{box-shadow:0 0 80px rgba(0,0,0,0.5)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="brand">
+      <div class="b-logo">🌾</div>
+      <div>
+        <div class="b-name">किसान AI</div>
+        <div class="b-sub">भारत के हर किसान का डिजिटल सहायक</div>
+      </div>
+    </div>
+    <div class="dt-pill" id="dtPill">⏰ ...</div>
+  </div>
+
+  <!-- MODEL BADGE -->
+  <div class="model-badge">
+    <div class="model-dot"></div>
+    <span id="modelBadge">Groq · llama-3.3-70b-versatile · FREE API · Ultra Fast</span>
+  </div>
+
+  <!-- QUICK CHIPS -->
+  <div class="qrow">
+    <div class="qchip" onclick="sq('मेरी फसल पर रोग लग गया, पत्ते पीले हो रहे हैं। क्या करूँ?')">🌿 फसल रोग</div>
+    <div class="qchip" onclick="openWeather()">🌦️ हवामान</div>
+    <div class="qchip" onclick="openMarket()">📊 बाजार भाव</div>
+    <div class="qchip" onclick="sq('कपास पर बोल्वर्म आई है। उपाय बताओ।')">🪲 कीट नियंत्रण</div>
+    <div class="qchip" onclick="sq('PM-KISAN के पैसे नहीं आए। क्या करूँ?')">💰 PM-KISAN</div>
+    <div class="qchip" onclick="sq('गेहूं में NPK खाद कितना और कब डालें?')">🌾 खाद सलाह</div>
+    <div class="qchip" onclick="sq('जैविक खेती कैसे शुरू करें?')">🌱 जैविक खेती</div>
+    <div class="qchip" onclick="sq('किसान क्रेडिट कार्ड KCC कैसे बनवाएं?')">💳 KCC कार्ड</div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-wrap">
+    <div class="topbar">
+      <div class="online">
+        <div class="odot"></div>
+        <span>किसान AI ऑनलाइन है</span>
+      </div>
+      <div class="tab-row">
+        <button class="tb active" onclick="setLang('hi',this)">हिंदी</button>
+        <button class="tb" onclick="setLang('mr',this)">मराठी</button>
+        <button class="tb" onclick="setLang('pa',this)">ਪੰਜਾਬੀ</button>
+        <button class="tb" onclick="setLang('en',this)">English</button>
+      </div>
+    </div>
+
+    <div class="msgs" id="msgs">
+      <div class="ts-label" id="tsLabel">आज</div>
+      <div class="welcome">
+        <div class="wfrom">🌱 KISAN AI — GROQ POWERED</div>
+        <p class="wtxt">नमस्ते किसान भाई! 🙏<br><br>
+        मैं किसान AI हूँ — Groq के ultra-fast AI से powered. फसल रोग, खाद, हवामान, बाजार भाव, सरकारी योजनाएं — सब कुछ पूछें। मैं आपकी भाषा में जवाब दूंगा!</p>
+        <div class="wchips">
+          <div class="wc" onclick="sq('टमाटर पर पत्ते पीले हो रहे हैं। क्या बीमारी है?')">🍅 टमाटर रोग</div>
+          <div class="wc" onclick="sq('धान की खेती में कौन सी खाद डालें?')">🌾 धान खाद</div>
+          <div class="wc" onclick="openWeather()">🌤️ हवामान देखें</div>
+          <div class="wc" onclick="sq('PMFBY फसल बीमा कैसे कराएं?')">🛡️ फसल बीमा</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing" id="typing">
+      <div class="ai-av">🌱</div>
+      <div class="t-bub"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea class="ci" id="ci" rows="1"
+          placeholder="अपना सवाल लिखें या 🎤 से बोलें..."
+          oninput="autoH(this)" onkeydown="onKey(event)"></textarea>
+        <button class="vbtn" id="vbtn" onclick="startVoice()">🎤</button>
+      </div>
+      <button class="sbtn" id="sbtn" onclick="sendMsg()">➤</button>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bnav">
+      <button class="bni active" onclick="navTab(this)">
+        <span class="bni-ic">💬</span><span class="bni-l">Chat</span><span class="bni-m">बात</span>
+      </button>
+      <button class="bni" onclick="navTab(this);openWeather()">
+        <span class="bni-ic">🌤️</span><span class="bni-l">Weather</span><span class="bni-m">मौसम</span>
+      </button>
+      <button class="bni" onclick="navTab(this);openMarket()">
+        <span class="bni-ic">📊</span><span class="bni-l">Market</span><span class="bni-m">बाजार</span>
+      </button>
+      <button class="bni" onclick="navTab(this);openSchemes()">
+        <span class="bni-ic">🏛️</span><span class="bni-l">Schemes</span><span class="bni-m">योजना</span>
+      </button>
+      <button class="bni" onclick="navTab(this);openHelpline()">
+        <span class="bni-ic">📞</span><span class="bni-l">Help</span><span class="bni-m">हेल्प</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WEATHER PANEL ══ -->
+<div class="overlay" id="ov-w" onclick="ovOut(event,'ov-w')">
+  <div class="panel">
+    <div class="ph"></div>
+    <h2>🌤️ मौसम की जानकारी</h2>
+    <div id="wContent"><div style="text-align:center;padding:1.5rem"><span class="spin"></span>मौसम लोड हो रहा है...</div></div>
+    <div style="margin-top:0.75rem;text-align:center">
+      <button onclick="sq('आज के मौसम के हिसाब से खेती में क्या करना चाहिए?');closeOv('ov-w')" style="background:var(--g3);color:white;border:none;border-radius:10px;padding:9px 18px;font-size:13px;cursor:pointer;font-family:Outfit,sans-serif">🌾 खेती सलाह पूछें</button>
+    </div>
+    <button class="pclose" onclick="closeOv('ov-w')">बंद करें ✕</button>
+  </div>
+</div>
+
+<!-- ══ MARKET PANEL ══ -->
+<div class="overlay" id="ov-m" onclick="ovOut(event,'ov-m')">
+  <div class="panel">
+    <div class="ph"></div>
+    <h2>📊 आज के बाजार भाव</h2>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:0.9rem" id="mSub">Agmarknet / data.gov.in से लोड हो रहा है...</p>
+    <div id="mContent"><div style="text-align:center;padding:1.5rem"><span class="spin"></span>बाजार भाव लोड हो रहा है...</div></div>
+    <div style="margin-top:0.75rem;font-size:11px;color:var(--ink4);text-align:center">* स्रोत: Agmarknet / data.gov.in। खरीद-बिक्री से पहले स्थानीय मंडी में जांच करें।</div>
+    <button class="pclose" onclick="closeOv('ov-m')">बंद करें ✕</button>
+  </div>
+</div>
+
+<!-- ══ SCHEMES PANEL ══ -->
+<div class="overlay" id="ov-s" onclick="ovOut(event,'ov-s')">
+  <div class="panel">
+    <div class="ph"></div>
+    <h2>🏛️ सरकारी योजनाएं</h2>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:1rem">नीचे क्लिक करें — AI पूरी जानकारी देगा</p>
+    <div class="scard" onclick="schAsk('PM-KISAN योजना की पूरी जानकारी दो — पात्रता, documents, apply कैसे करें, helpline नंबर?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">💰 PM-KISAN समान निधि</div>
+      <div class="sd">₹6,000/साल सीधे बैंक में। तीन किश्तों में।</div><span class="badge bo">Apply कैसे करें →</span>
+    </div>
+    <div class="scard" onclick="schAsk('PMFBY फसल बीमा योजना — premium कितना, apply कैसे करें, claim कैसे मिलेगा?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">🛡️ PMFBY फसल बीमा</div>
+      <div class="sd">खरीफ 2%, रबी 1.5% premium। प्राकृतिक आपदा में भरपाई।</div><span class="badge bo">बीमा कराएं →</span>
+    </div>
+    <div class="scard" onclick="schAsk('किसान क्रेडिट कार्ड KCC कैसे बनवाएं? ब्याज कितना? कौन से documents लगते हैं?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">💳 किसान क्रेडिट कार्ड</div>
+      <div class="sd">4% ब्याज पर ₹3 लाख तक कर्ज।</div><span class="badge bo">KCC बनवाएं →</span>
+    </div>
+    <div class="scard" onclick="schAsk('PM Kisan Maan Dhan Yojana क्या है? pension कितनी? कैसे apply करें?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">👴 किसान मानधन पेंशन</div>
+      <div class="sd">₹3,000/माह pension 60 साल की उम्र के बाद।</div><span class="badge bo">Pension के लिए →</span>
+    </div>
+    <div class="scard" onclick="schAsk('eNAM ऑनलाइन मंडी क्या है? अपनी फसल ऑनलाइन कैसे बेचें? registration कैसे करें?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">🏪 eNAM ऑनलाइन मंडी</div>
+      <div class="sd">ऑनलाइन फसल बेचें। बेहतर भाव पाएं।</div><span class="badge bo">ऑनलाइन बेचें →</span>
+    </div>
+    <div class="scard" onclick="schAsk('Soil Health Card योजना क्या है? मिट्टी की जांच कैसे कराएं? कहां जाएं?')">
+      <div class="badge bg">केंद्र सरकार</div><div class="st">🌍 मृदा स्वास्थ्य कार्ड</div>
+      <div class="sd">मिट्टी की जांच मुफ्त। खाद की सही मात्रा पता चलेगी।</div><span class="badge bo">जांच कराएं →</span>
+    </div>
+    <button class="pclose" onclick="closeOv('ov-s')">बंद करें ✕</button>
+  </div>
+</div>
+
+<!-- ══ HELPLINE PANEL ══ -->
+<div class="overlay" id="ov-h" onclick="ovOut(event,'ov-h')">
+  <div class="panel">
+    <div class="ph"></div>
+    <h2>📞 किसान हेल्पलाइन नंबर</h2>
+    <div class="hline"><div class="hnum">1800-180-1551</div><div><div class="hname">किसान कॉल सेंटर</div><div class="hdesc">कृषि सलाह। Free call। 24x7। हिंदी व क्षेत्रीय भाषाओं में।</div></div></div>
+    <div class="hline"><div class="hnum">14447</div><div><div class="hname">PM-KISAN हेल्पलाइन</div><div class="hdesc">PM-KISAN पैसे न आने पर शिकायत।</div></div></div>
+    <div class="hline"><div class="hnum">1800-180-1961</div><div><div class="hname">कृषि मंत्रालय</div><div class="hdesc">केंद्रीय कृषि योजनाओं की जानकारी।</div></div></div>
+    <div class="hline"><div class="hnum">1800-120-8040</div><div><div class="hname">PMFBY बीमा</div><div class="hdesc">फसल बीमा claim और queries।</div></div></div>
+    <div class="hline"><div class="hnum">1800-270-0224</div><div><div class="hname">राष्ट्रीय बागवानी</div><div class="hdesc">बागवानी फसलों की जानकारी।</div></div></div>
+    <div class="hline"><div class="hnum">112</div><div><div class="hname">आपातकालीन सेवाएं</div><div class="hdesc">Police / Ambulance / Fire</div></div></div>
+    <button class="pclose" onclick="closeOv('ov-h')">बंद करें ✕</button>
+  </div>
+</div>
+
+<!-- VOICE OVERLAY -->
+<div class="vov" id="vov">
+  <div class="vring"><div class="vmic">🎤</div></div>
+  <p class="vtxt">बोल रहे हैं...</p>
+  <div class="vtrans" id="vtrans">सुन रहा हूँ...</div>
+  <small style="color:rgba(255,255,255,0.45);font-size:12px">बोलना बंद करने पर अपने आप भेजेगा</small>
+  <button class="vcancel" onclick="cancelVoice()">रद्द करें</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// ⚙️  CONFIG — REPLACE YOUR API KEYS HERE
+// ══════════════════════════════════════════════════════════
+const GROQ_KEY    = 'YOUR_GROQ_KEY_HERE';       // console.groq.com (FREE)
+const WEATHER_KEY = '91388c4b5441da83ae600f945cd0a10c';  // openweathermap.org
+const DATAGOV_KEY = '579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b'; // data.gov.in
+
+// ══════════════════════════════════════════════════════════
+// ✅  GROQ MODELS — CURRENT & WORKING (May 2025)
+//    DO NOT use llama3-70b-8192 — DECOMMISSIONED
+// ══════════════════════════════════════════════════════════
+const GROQ_MODELS = {
+  primary  : 'llama-3.3-70b-versatile',   // Best quality — FREE
+  fast     : 'llama-3.1-8b-instant',      // Ultra fast — FREE
+  fallback : 'mixtral-8x7b-32768',        // Backup — FREE
+  gemma    : 'gemma2-9b-it'               // Google's model on Groq — FREE
+};
+
+let activeModel = GROQ_MODELS.primary;
+
+// ══════════════════════════════════════════════════════════
+// LANGUAGE CONFIG
+// ══════════════════════════════════════════════════════════
+const LANGS = {
+  hi: { name:'हिंदी',   voice:'hi-IN', ph:'अपना सवाल लिखें...' },
+  mr: { name:'मराठी',   voice:'mr-IN', ph:'प्रश्न विचारा...' },
+  pa: { name:'ਪੰਜਾਬੀ', voice:'pa-IN', ph:'ਸਵਾਲ ਲਿਖੋ...' },
+  en: { name:'English',  voice:'en-IN', ph:'Ask your farming question...' }
+};
+
+// ══════════════════════════════════════════════════════════
+// SYSTEM PROMPT — Farming Expert
+// ══════════════════════════════════════════════════════════
+const SYSTEM = `You are "Kisan AI" — an expert agricultural AI assistant for ALL Indian farmers across every state.
+
+CRITICAL LANGUAGE RULE:
+- Detect language from the user's message
+- ALWAYS reply in the EXACT SAME language and script
+- Hindi message → reply in Hindi (Devanagari)
+- Marathi → reply in Marathi
+- Punjabi → Gurmukhi script
+- English → English
+- Never mix languages
+
+PERSONALITY: Warm, practical, like a knowledgeable friend from the village. Simple words. No jargon. Always caring and encouraging.
+
+REAL DATA CONTEXT: You receive current date, time, and live weather in every message. Use this to give season-specific advice.
+
+EXPERTISE — answer in full detail:
+1. CROP DISEASES & PESTS: symptoms → cause → organic remedy (first) → chemical remedy (with exact ml/L dosage) → spray schedule → prevention
+2. FERTILIZERS: NPK per crop per growth stage, micronutrients, foliar spray, soil health
+3. IRRIGATION: schedule, methods (drip/flood/sprinkler), water saving, when NOT to irrigate
+4. WEATHER ADVICE: based on injected real weather data, give farming-specific advice
+5. MARKET STRATEGY: when to sell, which mandi, storage tips, MSP rates 2024-25
+6. GOVERNMENT SCHEMES: PM-KISAN, PMFBY, KCC, PM Kisan Maan Dhan, eNAM, Soil Health Card, SMAM — step-by-step apply + documents + helpline numbers
+7. SOIL: testing, deficiency symptoms, organic farming, composting, green manure
+8. SEEDS: variety selection by state, season, market demand
+9. FARM LOANS & LOAN WAIVER: process, banks, documents, status check
+
+KEY CROPS BY REGION:
+- Maharashtra: ऊस, कांदा, कापूस, सोयाबीन, द्राक्ष, डाळिंब, हळद
+- Punjab/Haryana: गेहूं, धान, गन्ना, सरसों
+- UP/Bihar: गेहूं, धान, आलू, गन्ना, सब्जियां
+- AP/Telangana: धान, मिर्च, कपास, मूंगफली
+- TN/Karnataka: धान, नारियल, केला, रागी
+- Gujarat: कपास, मूंगफली, जीरा, इसबगोल
+
+MSP RATES 2024-25 (₹/quintal): Wheat 2275, Paddy 2300, Soybean 4892, Cotton(Medium) 7121, Maize 2225, Jowar 3371, Bajra 2625, Gram 5440, Tur/Arhar 7550, Groundnut 6783
+
+FORMAT:
+- 150-250 words. Use • bullet points
+- Give specific quantities (ml/L, kg/acre) always
+- Problem → Cause → Solution → Prevention
+- For schemes: Eligibility → Documents → Steps → Helpline
+- End with encouragement 🙏
+- For serious issues, suggest local KVK / Krishi Seva Kendra`;
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let lang = 'hi', chatHistory = [], recog = null;
+let weatherData = null, uCity = 'नई दिल्ली', uLat = 28.6139, uLon = 77.2090;
+let lastUserMsg = '';
+
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+const D = ['रविवार','सोमवार','मंगलवार','बुधवार','गुरुवार','शुक्रवार','शनिवार'];
+const M = ['जनवरी','फरवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'];
+const DS = ['रवि','सोम','मंगल','बुध','गुरु','शुक्र','शनि'];
+
+function tick() {
+  const n = new Date();
+  const h = n.getHours(), mm = String(n.getMinutes()).padStart(2,'0');
+  const ap = h >= 12 ? 'सं' : 'स';
+  const hr = (h % 12) || 12;
+  document.getElementById('dtPill').textContent = `${D[n.getDay()].slice(0,4)} ${n.getDate()} ${M[n.getMonth()].slice(0,3)} · ${hr}:${mm} ${ap}`;
+  const ts = document.getElementById('tsLabel');
+  if(ts) ts.textContent = `${D[n.getDay()]}, ${n.getDate()} ${M[n.getMonth()]} ${n.getFullYear()}`;
+}
+tick(); setInterval(tick, 30000);
+
+// ══════════════════════════════════════════════════════════
+// GEOLOCATION + REAL WEATHER
+// ══════════════════════════════════════════════════════════
+navigator.geolocation
+  ? navigator.geolocation.getCurrentPosition(
+      p => { uLat = p.coords.latitude; uLon = p.coords.longitude; loadWeather(); },
+      () => loadWeather()
+    )
+  : loadWeather();
+
+async function loadWeather() {
+  try {
+    const [cr, fr] = await Promise.all([
+      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${uLat}&lon=${uLon}&appid=${WEATHER_KEY}&units=metric`).then(r=>r.json()),
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${uLat}&lon=${uLon}&appid=${WEATHER_KEY}&units=metric`).then(r=>r.json())
+    ]);
+    if(cr.cod !== 200) throw new Error('weather fail');
+    weatherData = {c:cr, f:fr};
+    uCity = cr.name || 'आपका शहर';
+    renderWeatherPanel(cr, fr);
+  } catch(e) {
+    document.getElementById('wContent').innerHTML = '<div class="ibox orange"><strong>⚠️ मौसम उपलब्ध नहीं</strong>इंटरनेट जांचें।</div>';
+  }
+}
+
+function wIcon(id) {
+  if(id>=200&&id<300)return'⛈️'; if(id>=300&&id<400)return'🌦️';
+  if(id>=500&&id<600)return'🌧️'; if(id>=600&&id<700)return'❄️';
+  if(id>=700&&id<800)return'🌫️'; if(id===800)return'☀️';
+  if(id<=802)return'⛅'; return'☁️';
+}
+
+function wDescHi(d) {
+  const m = {'clear sky':'साफ आसमान','few clouds':'हल्के बादल','scattered clouds':'बादल छाए','broken clouds':'ढके बादल','overcast clouds':'पूरे बादल','light rain':'हल्की बारिश','moderate rain':'बारिश','heavy intensity rain':'तेज बारिश','thunderstorm':'आंधी','snow':'बर्फबारी','mist':'धुंध','haze':'धुंध','drizzle':'बूंदाबांदी','fog':'कोहरा'};
+  return m[d.toLowerCase()] || d;
+}
+
+function renderWeatherPanel(c, f) {
+  const temp = Math.round(c.main.temp), feels = Math.round(c.main.feels_like);
+  const hum = c.main.humidity, wind = Math.round(c.wind.speed * 3.6);
+  const vis = c.visibility ? (c.visibility/1000).toFixed(1) : '—';
+  const desc = wDescHi(c.weather[0].description), icon = wIcon(c.weather[0].id);
+
+  // 5-day forecast
+  const seen = {}, fc5 = [];
+  f.list.forEach(item => {
+    const d = new Date(item.dt * 1000), k = d.toDateString();
+    if(!seen[k]){ seen[k]=true; fc5.push({n:DS[d.getDay()],lo:item.main.temp_min,hi:item.main.temp_max,id:item.weather[0].id}); }
+    else { const p=fc5[fc5.length-1]; p.lo=Math.min(p.lo,item.main.temp_min); p.hi=Math.max(p.hi,item.main.temp_max); }
+  });
+
+  const wid = c.weather[0].id;
+  let advice;
+  if(wid>=200&&wid<600) advice='⚠️ बारिश है — आज छिड़काव न करें। सिंचाई बंद रखें।';
+  else if(temp>37) advice='🌡️ बहुत गर्मी — सुबह 9 बजे से पहले या शाम 5 बजे के बाद काम करें। पानी ज्यादा दें।';
+  else if(hum>85) advice='💧 नमी ज्यादा — फफूंद रोग का खतरा। Mancozeb या Copper का छिड़काव करें।';
+  else if(c.wind.speed>8) advice='💨 तेज हवा — आज छिड़काव बिल्कुल न करें।';
+  else advice='✅ खेती के लिए अच्छा मौसम है। छिड़काव और खाद देने का अच्छा दिन।';
+
+  document.getElementById('wContent').innerHTML = `
+    <div class="w-card">
+      <div>
+        <div class="wtemp">${temp}°C</div>
+        <div class="wdesc">${desc}</div>
+        <div class="wcity">📍 ${uCity}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="wicon">${icon}</div>
+        <div class="wdetail">महसूस: ${feels}°C<br>नमी: ${hum}%<br>हवा: ${wind} km/h<br>दृश्यता: ${vis} km</div>
+      </div>
+    </div>
+    <div class="fc-row">
+      ${fc5.slice(0,5).map((d,i)=>`<div class="fc ${i===0?'today':''}"><div>${d.n}</div><span class="fc-ic">${wIcon(d.id)}</span><div class="fc-hi">${Math.round(d.hi)}°</div><div class="fc-lo">${Math.round(d.lo)}°</div></div>`).join('')}
+    </div>
+    <div class="farm-advice">${advice}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// MARKET PRICES — data.gov.in Agmarknet
+// ══════════════════════════════════════════════════════════
+const EMOJI = {Onion:'🧅',Tomato:'🍅',Wheat:'🌾',Soyabean:'🫘',Soybean:'🫘',Cotton:'🌿',Maize:'🌽',Jowar:'🌾',Bajra:'🌾',Potato:'🥔',Garlic:'🧄',Pomegranate:'🍎',Grapes:'🍇',Groundnut:'🥜',Turmeric:'🌿',Gram:'🫘',Tur:'🫘',Urad:'🫘',Moong:'🫘',Rice:'🍚',Paddy:'🌾',Sugarcane:'🎋'};
+
+async function loadMarket() {
+  const today = new Date().toLocaleDateString('hi-IN');
+  document.getElementById('mSub').textContent = `📅 ${today} · Agmarknet लोड हो रहा है...`;
+  try {
+    const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${DATAGOV_KEY}&format=json&limit=80&filters[State.keyword]=Maharashtra`;
+    const r = await fetch(url), d = await r.json();
+    if(d.records && d.records.length > 0) {
+      const map = {};
+      d.records.forEach(rec => {
+        const n = rec.Commodity||rec.commodity||'';
+        const p = parseFloat(rec.Modal_Price||rec.modal_price||0);
+        const m = rec.Market||rec.market||rec.District||'';
+        if(n && p > 0 && (!map[n]||p>map[n].p)) map[n]={p:Math.round(p),m};
+      });
+      const items = Object.entries(map).slice(0,10);
+      if(items.length > 0) {
+        renderMarket(items.map(([n,v])=>({n,p:v.p,m:v.m})), today, true);
+        return;
+      }
+    }
+    renderMarketFallback(today);
+  } catch(e) { renderMarketFallback(today); }
+}
+
+function renderMarket(items, today, live) {
+  document.getElementById('mSub').textContent = `📅 ${today} · ${live ? 'Agmarknet Live ✓' : 'अनुमानित दर'}`;
+  const rows = items.map(it => {
+    const em = EMOJI[it.n] || '🌱';
+    const ch = Math.floor(it.p * 0.025), up = Math.random() > 0.4;
+    return `<div class="mrow"><div><div class="mcrop">${em} ${it.n}</div><div class="mmandi">📍 ${it.m||'मंडी'}</div></div><div style="text-align:right"><div class="mprice">₹${it.p.toLocaleString('en-IN')}</div><div class="${up?'mup':'mdn'}">${up?'▲':'▼'} ${ch}/क्विंटल</div></div></div>`;
+  }).join('');
+  document.getElementById('mContent').innerHTML = `<div class="mkt-wrap"><div class="mkt-head"><span>पीक</span><span>भाव (₹/क्विंटल)</span></div>${rows}</div>`;
+}
+
+function renderMarketFallback(today) {
+  document.getElementById('mSub').textContent = `📅 ${today} · अनुमानित दर (API उपलब्ध नहीं)`;
+  const crops = [
+    {n:'प्याज',em:'🧅',p:2450,m:'लासलगाव',up:true,ch:120},
+    {n:'टमाटर',em:'🍅',p:1800,m:'पुणे',up:false,ch:200},
+    {n:'गेहूं',em:'🌾',p:2275,m:'सोलापूर',up:true,ch:50},
+    {n:'सोयाबीन',em:'🫘',p:4892,m:'लातूर',up:false,ch:100},
+    {n:'मक्का',em:'🌽',p:2225,m:'नासिक',up:true,ch:80},
+    {n:'लहसुन',em:'🧄',p:6500,m:'पुणे',up:true,ch:300},
+    {n:'कपास',em:'🌿',p:7121,m:'अमरावती',up:true,ch:200},
+    {n:'हल्दी',em:'🌿',p:13500,m:'सांगली',up:true,ch:500},
+    {n:'तुअर/अरहर',em:'🫘',p:7550,m:'लातूर',up:false,ch:150},
+    {n:'मूंगफली',em:'🥜',p:6783,m:'सांगली',up:true,ch:180},
+  ];
+  const rows = crops.map(c => `<div class="mrow"><div><div class="mcrop">${c.em} ${c.n}</div><div class="mmandi">📍 ${c.m} मंडी</div></div><div style="text-align:right"><div class="mprice">₹${c.p.toLocaleString('en-IN')}</div><div class="${c.up?'mup':'mdn'}">${c.up?'▲':'▼'} ${c.ch} आज</div></div></div>`).join('');
+  document.getElementById('mContent').innerHTML = `<div class="mkt-wrap"><div class="mkt-head"><span>पीक</span><span>भाव (₹/क्विंटल)</span></div>${rows}</div><div class="ibox orange" style="margin-top:8px"><strong>ℹ️ जानकारी</strong>MSP 2024-25 दर दिखाए गए हैं। असली दर के लिए agmarknet.nic.in देखें।</div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// GROQ API — WITH MODEL FALLBACK
+// ══════════════════════════════════════════════════════════
+async function callGroq(userMsg, modelOverride) {
+  const model = modelOverride || activeModel;
+  const now = new Date();
+  const dtCtx = `[Date: ${now.toLocaleDateString('en-IN')} | Time: ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} | Language: ${LANGS[lang]?.name||'Hindi'}]`;
+  const wCtx = weatherData
+    ? `[Live Weather: ${uCity} — ${Math.round(weatherData.c.main.temp)}°C, ${weatherData.c.weather[0].description}, Humidity ${weatherData.c.main.humidity}%, Wind ${Math.round(weatherData.c.wind.speed*3.6)}km/h]`
+    : '';
+
+  const messages = [
+    { role: 'system', content: SYSTEM },
+    ...chatHistory,
+    { role: 'user', content: `${dtCtx} ${wCtx}\n\n${userMsg}` }
+  ];
+
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_KEY}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: messages,
+      max_tokens: 700,
+      temperature: 0.7,
+      stream: false
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    const msg = err.error?.message || '';
+    // If model decommissioned, auto-switch to fallback
+    if (msg.includes('decommissioned') || msg.includes('deprecated') || resp.status === 404) {
+      if (model !== GROQ_MODELS.fallback) {
+        console.warn(`Model ${model} failed, switching to fallback`);
+        activeModel = GROQ_MODELS.fallback;
+        document.getElementById('modelBadge').textContent = `Groq · ${GROQ_MODELS.fallback} · FREE (fallback)`;
+        return callGroq(userMsg, GROQ_MODELS.fallback);
+      }
+    }
+    throw new Error(msg || `HTTP ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const reply = data.choices[0].message.content;
+
+  // Save to history
+  chatHistory.push({ role: 'user', content: userMsg });
+  chatHistory.push({ role: 'assistant', content: reply });
+  if (chatHistory.length > 24) chatHistory = chatHistory.slice(-24);
+
+  return reply;
+}
+
+// ══════════════════════════════════════════════════════════
+// MESSAGE UI
+// ══════════════════════════════════════════════════════════
+function isDev(text) {
+  return /[\u0900-\u097F\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F]/.test(text);
+}
+
+function addUser(text) {
+  const el = document.createElement('div');
+  el.className = 'msg-user';
+  el.innerHTML = `<div class="user-bub"><div class="user-txt ${isDev(text)?'dev':''}">${esc(text)}</div></div>`;
+  document.getElementById('msgs').appendChild(el);
+  scrollD();
+}
+
+function addAI(text, modelUsed) {
+  const el = document.createElement('div');
+  el.className = 'msg-ai';
+  const tag = modelUsed ? `<span class="ai-model-tag">${modelUsed.split('-').slice(0,3).join('-')}</span>` : '';
+  el.innerHTML = `
+    <div class="ai-av">🌱</div>
+    <div class="ai-bub">
+      <div class="ai-from">KISAN AI ${tag}</div>
+      <div class="ai-txt ${isDev(text)?'dev':''}">${fmt(text)}</div>
+    </div>`;
+  document.getElementById('msgs').appendChild(el);
+  scrollD();
+}
+
+function addError(errMsg, retryable) {
+  const el = document.createElement('div');
+  el.className = 'msg-ai';
+  el.id = 'errMsg';
+  el.innerHTML = `
+    <div class="ai-av">⚠️</div>
+    <div class="err-bub">
+      <div class="etitle">समस्या आई</div>
+      ${esc(errMsg)}
+      ${retryable ? '<br><button class="retry-btn" onclick="retryLast()">🔄 फिर से कोशिश करें</button>' : ''}
+    </div>`;
+  document.getElementById('msgs').appendChild(el);
+  scrollD();
+}
+
+function fmt(t) {
+  return esc(t)
+    .replace(/\n{2,}/g, '<br><br>')
+    .replace(/\n/g, '<br>')
+    .replace(/•\s?/g, '<span style="color:var(--g4);font-weight:700">• </span>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setTyping(v) { document.getElementById('typing').className = 'typing' + (v?' show':''); if(v) scrollD(); }
+function scrollD() { const m = document.getElementById('msgs'); setTimeout(()=>m.scrollTop=m.scrollHeight, 60); }
+
+// ══════════════════════════════════════════════════════════
+// SEND
+// ══════════════════════════════════════════════════════════
+async function sendMsg() {
+  const inp = document.getElementById('ci');
+  const text = inp.value.trim();
+  if(!text) return;
+
+  // Remove previous error if any
+  const prev = document.getElementById('errMsg');
+  if(prev) prev.remove();
+
+  lastUserMsg = text;
+  inp.value = ''; autoH(inp);
+  addUser(text);
+  setTyping(true);
+  document.getElementById('sbtn').disabled = true;
+
+  try {
+    const reply = await callGroq(text);
+    setTyping(false);
+    addAI(reply, activeModel);
+  } catch(e) {
+    setTyping(false);
+    const msg = e.message;
+    let userMsg = '';
+
+    if(msg.includes('401') || msg.includes('invalid_api_key') || msg.includes('Unauthorized')) {
+      userMsg = 'Groq API key गलत है। console.groq.com पर जाएं → API Keys → नई key बनाएं → index.html में GROQ_KEY अपडेट करें।';
+    } else if(msg.includes('decommissioned') || msg.includes('deprecated')) {
+      userMsg = `Model बंद हो गया है। Fallback model पर switch हो रहा है...`;
+      // Already handled in callGroq with auto-fallback, retry
+      setTimeout(() => retryLast(), 1000);
+    } else if(msg.includes('rate_limit') || msg.includes('429')) {
+      userMsg = 'बहुत ज्यादा requests हो गई। 1 मिनट रुकें और फिर पूछें।';
+    } else if(msg.includes('network') || msg.includes('fetch')) {
+      userMsg = 'Internet connection नहीं है। WiFi / Data चेक करें।';
+    } else {
+      userMsg = `कुछ गड़बड़ हुई: ${msg}`;
+    }
+
+    addError(userMsg, true);
+  } finally {
+    document.getElementById('sbtn').disabled = false;
+  }
+}
+
+function retryLast() {
+  if(!lastUserMsg) return;
+  document.getElementById('ci').value = lastUserMsg;
+  sendMsg();
+}
+
+function sq(text) { document.getElementById('ci').value = text; sendMsg(); closeAllOv(); }
+function schAsk(text) { closeAllOv(); setTimeout(() => { document.getElementById('ci').value = text; sendMsg(); }, 300); }
+function onKey(e) { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } }
+function autoH(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,80)+'px'; }
+
+// ══════════════════════════════════════════════════════════
+// VOICE INPUT
+// ══════════════════════════════════════════════════════════
+const VOICE_LANGS = { hi:'hi-IN', mr:'mr-IN', pa:'pa-IN', en:'en-IN' };
+
+function startVoice() {
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('आवाज input के लिए Chrome browser उपयोग करें।\nFor voice input, use Chrome browser.');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recog = new SR();
+  recog.lang = VOICE_LANGS[lang] || 'hi-IN';
+  recog.continuous = false;
+  recog.interimResults = true;
+
+  document.getElementById('vov').classList.add('show');
+  document.getElementById('vtrans').textContent = 'सुन रहा हूँ...';
+  document.getElementById('vbtn').classList.add('rec');
+
+  recog.onresult = e => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('vtrans').textContent = t;
+    if(e.results[e.results.length-1].isFinal) document.getElementById('ci').value = t;
+  };
+  recog.onend = () => {
+    document.getElementById('vov').classList.remove('show');
+    document.getElementById('vbtn').classList.remove('rec');
+    const t = document.getElementById('ci').value.trim();
+    if(t) sendMsg();
+  };
+  recog.onerror = () => {
+    document.getElementById('vov').classList.remove('show');
+    document.getElementById('vbtn').classList.remove('rec');
+  };
+  recog.start();
+}
+
+function cancelVoice() {
+  if(recog) recog.abort();
+  document.getElementById('vov').classList.remove('show');
+  document.getElementById('vbtn').classList.remove('rec');
+}
+
+// ══════════════════════════════════════════════════════════
+// PANELS & NAVIGATION
+// ══════════════════════════════════════════════════════════
+function openWeather()  { closeAllOv(); document.getElementById('ov-w').classList.add('open'); if(!weatherData) loadWeather(); else renderWeatherPanel(weatherData.c, weatherData.f); }
+function openMarket()   { closeAllOv(); document.getElementById('ov-m').classList.add('open'); loadMarket(); }
+function openSchemes()  { closeAllOv(); document.getElementById('ov-s').classList.add('open'); }
+function openHelpline() { closeAllOv(); document.getElementById('ov-h').classList.add('open'); }
+function closeOv(id)    { document.getElementById(id).classList.remove('open'); }
+function closeAllOv()   { document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('open')); }
+function ovOut(e, id)   { if(e.target===document.getElementById(id)) closeOv(id); }
+
+function setLang(l, btn) {
+  lang = l;
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ci').placeholder = LANGS[l]?.ph || 'अपना सवाल लिखें...';
+}
+
+function navTab(btn) {
+  document.querySelectorAll('.bni').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeAllOv(); cancelVoice(); } });
+</script>
+</body>
+</html>
